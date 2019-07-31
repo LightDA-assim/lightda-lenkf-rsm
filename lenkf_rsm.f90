@@ -22,7 +22,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, rank_ana, &
-     state_p, ens_p, resid, U_add_obs_err, U_localize, forget, flag)
+     state_p, ens_p, resid, U_add_obs_err, U_localize, forget, flag) bind(c)
 
 
 ! !DESCRIPTION:
@@ -52,32 +52,47 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
 
   IMPLICIT NONE
 
+  abstract INTERFACE
+     SUBROUTINE add_obs_err(step,ind_p,dim_obs,HPH) BIND(C)
+       ! Add observation error covariance matrix
+       USE iso_c_binding
+       INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_obs
+       REAL(c_double), INTENT(inout) :: HPH(dim_obs,dim_obs)
+     END SUBROUTINE add_obs_err
+     SUBROUTINE localize(step,ind_p,dim_p,dim_obs,HP_p,HPH) BIND(C)
+       ! Apply localization to HP and HPH^T
+       USE iso_c_binding
+       INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_p, dim_obs
+       REAL(c_double), INTENT(inout) :: HP_p(dim_obs,dim_p), HPH(dim_obs,dim_obs)
+     END SUBROUTINE localize
+  END INTERFACE
+
   ! !ARGUMENTS:
-  INTEGER(c_int32_t), INTENT(in) :: step      ! Iteration number
-  INTEGER(c_int32_t), INTENT(in) :: ind_p      ! Integer index of PE
-  INTEGER(c_int32_t), INTENT(in)  :: dim_p     ! PE-local dimension of model state
-  INTEGER(c_int32_t), INTENT(in) :: dim_obs_p  ! PE-local dimension of observation vector
-  INTEGER(c_int32_t), INTENT(in) :: dim_obs    ! Global dimension of observation vector
-  INTEGER(c_int32_t), INTENT(in)  :: dim_ens   ! Size of state ensemble
-  INTEGER(c_int32_t), INTENT(in)  :: rank_ana  ! Rank to be considered for inversion of HPH
+  INTEGER(c_int32_t), INTENT(in), value :: step      ! Iteration number
+  INTEGER(c_int32_t), INTENT(in), value :: ind_p      ! Integer index of PE
+  INTEGER(c_int32_t), INTENT(in), value  :: dim_p     ! PE-local dimension of model state
+  INTEGER(c_int32_t), INTENT(in), value :: dim_obs_p  ! PE-local dimension of observation vector
+  INTEGER(c_int32_t), INTENT(in), value :: dim_obs    ! Global dimension of observation vector
+  INTEGER(c_int32_t), INTENT(in), value :: dim_ens   ! Size of state ensemble
+  INTEGER(c_int32_t), INTENT(in), value :: rank_ana  ! Rank to be considered for inversion of HPH
   REAL(c_double), INTENT(inout)  :: state_p(dim_p)        ! PE-local ensemble mean state
   REAL(c_double), INTENT(inout)  :: ens_p(dim_p, dim_ens) ! PE-local state ensemble
   REAL(c_double), INTENT(in)     :: resid(dim_obs, dim_ens) ! Global array of residuals
-  REAL(c_double), INTENT(in)     :: forget    ! Forgetting factor
+  REAL(c_double), INTENT(in), value     :: forget    ! Forgetting factor
   INTEGER(c_int32_t), INTENT(inout) :: flag    ! Status flag
+
+  procedure(add_obs_err) :: U_add_obs_err
+  procedure(localize) :: U_localize
 
 ! ! External subroutines 
 ! ! (PDAF-internal names, real names are defined in the call to PDAF)
-  EXTERNAL :: U_add_obs_err, &  ! Add observation error covariance matrix
-       U_localize               ! Apply localization to HP and HPH^T
-
 ! !CALLING SEQUENCE:
 ! Called by: PDAF_enkf_update
 ! Calls: U_add_obs_err
 ! Calls: U_localize
-! Calls: gemmTYPE (BLAS; dgemm or sgemm dependent on precision)
-! Calls: gesvTYPE (LAPACK; dgesv or sgesv dependent on precision)
-! Calls: syevxTYPE (LAPACK; dsyevx or ssyevx dependent on precision)
+! Calls: dgemm (BLAS)
+! Calls: dgesv (LAPACK)
+! Calls: dsyevx (LAPACK)
 !EOP
 
 ! *** local variables ***
@@ -91,7 +106,6 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
   REAL(c_double), ALLOCATABLE :: HPH(:,:)        ! Temporary matrix for analysis
   REAL(c_double), ALLOCATABLE :: XminMean_p(:,:) ! Temporary matrix for analysis
   REAL(c_double), ALLOCATABLE :: m_state_p(:)    ! PE-local observed state
-  REAL(c_double), ALLOCATABLE :: HXmean_p(:)     ! Temporary vector for analysis
   INTEGER, ALLOCATABLE :: ipiv(:)      ! vector of pivot indices
   INTEGER :: sgesv_info                ! output flag of SGESV
 
@@ -111,6 +125,8 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
   REAL(c_double),EXTERNAL :: DLAMCH   ! function to specify tolerance of SYEVX
   REAL(c_double)    :: eval_inv       ! inverse of an eigenvalue
 
+
+  write(*,*) 'Assimilating at step',step
 
 ! **********************
 ! *** INITIALIZATION ***
@@ -172,29 +188,26 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
 
   END DO ENSa
 
-  ! compute mean of ensemble projected on obseration space
-  ALLOCATE(HXmean_p(dim_obs_p))
-    
   ! Finish computation of HP and HPH
   ALLOCATE(HP_p(dim_obs, dim_p))
   ALLOCATE(HPH(dim_obs, dim_obs))
   
-  CALL gemmTYPE('n', 't', dim_obs, dim_p, dim_ens, &
+  CALL dgemm('n', 't', dim_obs, dim_p, dim_ens, &
        invdim_ensm1, resid, dim_obs, XminMean_p, dim_p, &
        0.0, HP_p, dim_obs)
 
-  CALL gemmTYPE('n', 't', dim_obs, dim_obs, dim_ens, &
+  CALL dgemm('n', 't', dim_obs, dim_obs, dim_ens, &
        invdim_ensm1, resid, dim_obs, resid, dim_obs, &
        0.0, HPH, dim_obs)
 
   DEALLOCATE(XminMean_p)
 
   ! Apply localization
-  CALL U_localize(step, ind_p, dim_p, dim_obs, HP_p, HPH)
+  call U_localize(step, ind_p, dim_p, dim_obs, HP_p, HPH)
 
   ! *** Add observation error covariance ***
   ! ***       HPH^T = (HPH + R)          ***
-  CALL U_add_obs_err(step, ind_p, dim_obs, HPH)
+  call U_add_obs_err(step, ind_p, dim_obs, HPH)
 
   whichupdate: IF (rank_ana > 0) THEN
 ! **************************************************
@@ -227,7 +240,7 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
      ! *** computing the RANK_ANA largest eigenvalues  ***
      ! *** and the corresponding eigenvectors          ***
      ! *** We use the LAPACK routine SYEVX             ***
-     CALL syevxTYPE('v', 'i', 'u', dim_obs, HPH, &
+     CALL dsyevx('v', 'i', 'u', dim_obs, HPH, &
           dim_obs, VL, VU, Ilower, Iupper, &
           abstol, nEOF, eval, evec, dim_obs, &
           rwork, 8 * dim_obs, iwork, ifail, syev_info)
@@ -249,7 +262,7 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
       
         ! *** compute HPH^(-1) ~ V evinv V^T ***
         ! *** HPH^(-1) is stored in HPH      ***
-        CALL gemmTYPE('n', 't', dim_obs, dim_obs, rank_ana, &
+        CALL dgemm('n', 't', dim_obs, dim_obs, rank_ana, &
              1.0, evec, dim_obs, evec_temp, dim_obs, &
              0.0, HPH, dim_obs)
 
@@ -261,7 +274,7 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
         ! ***           b = invHPH d           ***
         ! ****************************************
 
-        CALL gemmTYPE('n', 'n', dim_obs, dim_ens, dim_obs, &
+        CALL dgemm('n', 'n', dim_obs, dim_ens, dim_obs, &
              1.0, HPH, dim_obs, resid, dim_obs, &
              0.0, repres, dim_obs)
 
@@ -272,7 +285,7 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
         ! ***********************************
 
 
-        CALL gemmTYPE('t', 'n', dim_p, dim_ens, dim_obs, &
+        CALL dgemm('t', 'n', dim_p, dim_ens, dim_obs, &
              1.0, HP_p, dim_obs, repres, dim_obs, &
              1.0, ens_p, dim_p)
  
@@ -297,7 +310,7 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
      ! ****************************************
      ALLOCATE(ipiv(dim_obs))
 
-     CALL gesvTYPE(dim_obs, dim_ens, HPH, dim_obs, ipiv, &
+     CALL dgesv(dim_obs, dim_ens, HPH, dim_obs, ipiv, &
           resid, dim_obs, sgesv_info)
     
 
@@ -313,7 +326,7 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
         ! ***   x = x + K d = x + HP b    ***
         ! ***********************************
 
-        CALL gemmTYPE('t', 'n', dim_p, dim_ens, dim_obs, &
+        CALL dgemm('t', 'n', dim_p, dim_ens, dim_obs, &
              1.0, HP_p, dim_obs, resid, dim_obs, &
              1.0, ens_p, dim_p)
 
