@@ -17,12 +17,34 @@
 !
 !$Id: PDAF-D_lenkf_analysis_rsm.F90 29 2018-03-09 20:06:46Z lnerger $
 !BOP
-!
+
+SUBROUTINE compute_residual(n,dim_ens,a,a_resid) bind(c)
+
+  USE iso_c_binding
+
+  IMPLICIT NONE
+
+  INTEGER(c_int32_t), INTENT(IN), value::n,dim_ens
+  REAL(c_double), INTENT(IN)::a(n,dim_ens)
+  REAL(c_double), INTENT(OUT)::a_resid(n,dim_ens)
+  INTEGER::imember,irow
+  REAL(c_double)::row_mean
+
+  do irow=1,n
+     row_mean=sum(a(irow,:))/real(dim_ens)
+     
+     do imember=1,dim_ens
+        a_resid(irow,imember)=a(irow,imember)-row_mean
+     end do
+  end do
+  
+end SUBROUTINE compute_residual
+
 ! !ROUTINE: PDAF_lenkf_analysis_rsm --- Perform LEnKF analysis step
 !
 ! !INTERFACE:
 SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, rank_ana, &
-     state_p, ens_p, resid, U_add_obs_err, U_localize, forget, flag) bind(c)
+     state_p, ens_p, predictions, innovations, U_add_obs_err, U_localize, forget, flag) bind(c)
 
 
 ! !DESCRIPTION:
@@ -65,8 +87,31 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
        INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_p, dim_obs
        REAL(c_double), INTENT(inout) :: HP_p(dim_obs,dim_p), HPH(dim_obs,dim_obs)
      END SUBROUTINE localize
+
   END INTERFACE
 
+  INTERFACE
+     SUBROUTINE compute_residual(n,dim_ens,a,a_resid) bind(c)
+
+       USE iso_c_binding
+
+       IMPLICIT NONE
+
+       INTEGER(c_int32_t), INTENT(IN), value::n,dim_ens
+       REAL(c_double), INTENT(IN)::a(n,dim_ens)
+       REAL(c_double), INTENT(OUT)::a_resid(n,dim_ens)
+       INTEGER::imember,irow
+       REAL(c_double)::row_mean
+       
+     end SUBROUTINE compute_residual
+     SUBROUTINE DGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
+        DOUBLE PRECISION ALPHA,BETA
+        INTEGER K,LDA,LDB,LDC,M,N
+        CHARACTER TRANSA,TRANSB
+        DOUBLE PRECISION A(LDA,*),B(LDB,*),C(LDC,*)
+      END SUBROUTINE DGEMM
+end INTERFACE
+     
   ! !ARGUMENTS:
   INTEGER(c_int32_t), INTENT(in), value :: step      ! Iteration number
   INTEGER(c_int32_t), INTENT(in), value :: ind_p      ! Integer index of PE
@@ -77,7 +122,8 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
   INTEGER(c_int32_t), INTENT(in), value :: rank_ana  ! Rank to be considered for inversion of HPH
   REAL(c_double), INTENT(inout)  :: state_p(dim_p)        ! PE-local ensemble mean state
   REAL(c_double), INTENT(inout)  :: ens_p(dim_p, dim_ens) ! PE-local state ensemble
-  REAL(c_double), INTENT(in)     :: resid(dim_obs, dim_ens) ! Global array of residuals
+  REAL(c_double), INTENT(inout)  :: predictions(dim_obs, dim_ens) ! PE-local state ensemble
+  REAL(c_double), INTENT(in)     :: innovations(dim_obs, dim_ens) ! Global array of innovations
   REAL(c_double), INTENT(in), value     :: forget    ! Forgetting factor
   INTEGER(c_int32_t), INTENT(inout) :: flag    ! Status flag
 
@@ -106,6 +152,8 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
   REAL(c_double), ALLOCATABLE :: HPH(:,:)        ! Temporary matrix for analysis
   REAL(c_double), ALLOCATABLE :: XminMean_p(:,:) ! Temporary matrix for analysis
   REAL(c_double), ALLOCATABLE :: m_state_p(:)    ! PE-local observed state
+  REAL(c_double), ALLOCATABLE :: resid_pred(:,:) ! Local array of state residuals
+  REAL(c_double), ALLOCATABLE :: resid_ens(:,:) ! Global array of prediction residuals
   INTEGER, ALLOCATABLE :: ipiv(:)      ! vector of pivot indices
   INTEGER :: sgesv_info                ! output flag of SGESV
 
@@ -188,17 +236,24 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
 
   END DO ENSa
 
+  ALLOCATE(resid_pred(dim_obs,dim_ens))
+  ALLOCATE(resid_ens(dim_p,dim_ens))
+
+  call compute_residual(dim_obs,dim_ens,predictions,resid_pred)
+  call compute_residual(dim_p,dim_ens,ens_p,resid_ens)
+
+
   ! Finish computation of HP and HPH
   ALLOCATE(HP_p(dim_obs, dim_p))
   ALLOCATE(HPH(dim_obs, dim_obs))
   
   CALL dgemm('n', 't', dim_obs, dim_p, dim_ens, &
-       invdim_ensm1, resid, dim_obs, XminMean_p, dim_p, &
-       0.0, HP_p, dim_obs)
+       invdim_ensm1, resid_pred, dim_obs, resid_ens, dim_p, &
+       0.0d+0, HP_p, dim_obs)
 
   CALL dgemm('n', 't', dim_obs, dim_obs, dim_ens, &
-       invdim_ensm1, resid, dim_obs, resid, dim_obs, &
-       0.0, HPH, dim_obs)
+       invdim_ensm1, resid_pred, dim_obs, resid_pred, dim_obs, &
+       0.0d+0, HPH, dim_obs)
 
   DEALLOCATE(XminMean_p)
 
@@ -286,8 +341,8 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
 
 
         CALL dgemm('t', 'n', dim_p, dim_ens, dim_obs, &
-             1.0, HP_p, dim_obs, repres, dim_obs, &
-             1.0, ens_p, dim_p)
+             1.0d+0, HP_p, dim_obs, repres, dim_obs, &
+             1.0d+0, ens_p, dim_p)
  
      END IF EVPok
 
@@ -311,7 +366,7 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
      ALLOCATE(ipiv(dim_obs))
 
      CALL dgesv(dim_obs, dim_ens, HPH, dim_obs, ipiv, &
-          resid, dim_obs, sgesv_info)
+          innovations, dim_obs, sgesv_info)
     
 
      ! *** check if solve was successful
@@ -327,8 +382,8 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
         ! ***********************************
 
         CALL dgemm('t', 'n', dim_p, dim_ens, dim_obs, &
-             1.0, HP_p, dim_obs, resid, dim_obs, &
-             1.0, ens_p, dim_p)
+             1.0d+0, HP_p, dim_obs, innovations, dim_obs, &
+             1.0d+0, ens_p, dim_p)
 
      END IF update
       
@@ -343,6 +398,8 @@ SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, ran
 
   DEALLOCATE(HP_p)
   DEALLOCATE(HPH)
+  DEALLOCATE(resid_pred)
+  DEALLOCATE(resid_ens)
 
   IF (allocflag == 0) allocflag = 1
 
