@@ -318,8 +318,8 @@ end INTERFACE
         ! *** compute HPH^(-1) ~ V evinv V^T ***
         ! *** HPH^(-1) is stored in HPH      ***
         CALL dgemm('n', 't', dim_obs, dim_obs, rank_ana, &
-             1.0, evec, dim_obs, evec_temp, dim_obs, &
-             0.0, HPH, dim_obs)
+             1.0d+0, evec, dim_obs, evec_temp, dim_obs, &
+             0.0d+0, HPH, dim_obs)
 
         DEALLOCATE(eval, evec, evec_temp, rwork, iwork, ifail)
         
@@ -330,8 +330,8 @@ end INTERFACE
         ! ****************************************
 
         CALL dgemm('n', 'n', dim_obs, dim_ens, dim_obs, &
-             1.0, HPH, dim_obs, resid, dim_obs, &
-             0.0, repres, dim_obs)
+             1.0d+0, HPH, dim_obs, innovations, dim_obs, &
+             0.0d+0, repres, dim_obs)
 
         ! **********************************
         ! *** Update model state ensemble ***
