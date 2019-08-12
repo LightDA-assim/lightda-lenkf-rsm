@@ -174,8 +174,6 @@ end INTERFACE
   REAL(c_double)    :: eval_inv       ! inverse of an eigenvalue
 
 
-  write(*,*) 'Assimilating at step',step
-
 ! **********************
 ! *** INITIALIZATION ***
 ! **********************
