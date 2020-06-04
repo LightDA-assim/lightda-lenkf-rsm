@@ -50,7 +50,7 @@ contains
   !
   ! !INTERFACE:
   SUBROUTINE lenkf_analysis_rsm(step,ind_p,dim_p, dim_obs_p, dim_obs, dim_ens, rank_ana, &
-       state_p, ens_p, predictions, innovations, U_add_obs_err, U_localize, forget, flag,info_ptr) bind(c)
+       state_p, ens_p, predictions, innovations, U_add_obs_err, U_localize, forget, flag,info)
 
 
     ! !DESCRIPTION:
@@ -81,19 +81,19 @@ contains
     IMPLICIT NONE
 
     abstract INTERFACE
-       SUBROUTINE add_obs_err(step,ind_p,dim_obs,HPH,info_ptr) BIND(C)
+       SUBROUTINE add_obs_err(step,ind_p,dim_obs,HPH,info)
          ! Add observation error covariance matrix
          USE iso_c_binding
          INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_obs
          REAL(c_double), INTENT(inout) :: HPH(dim_obs,dim_obs)
-         type(c_ptr),intent(inout)::info_ptr
+         class(*),intent(in)::info
        END SUBROUTINE add_obs_err
-       SUBROUTINE localize(step,ind_p,dim_p,dim_obs,HP_p,HPH,info_ptr) BIND(C)
+       SUBROUTINE localize(step,ind_p,dim_p,dim_obs,HP_p,HPH,info)
          ! Apply localization to HP and HPH^T
          USE iso_c_binding
          INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_p, dim_obs
          REAL(c_double), INTENT(inout) :: HP_p(dim_obs,dim_p), HPH(dim_obs,dim_obs)
-         type(c_ptr),intent(inout)::info_ptr
+         class(*),intent(in)::info
        END SUBROUTINE localize
 
     END INTERFACE
@@ -134,7 +134,7 @@ contains
     REAL(c_double), INTENT(in)     :: innovations(dim_obs, dim_ens) ! Global array of innovations
     REAL(c_double), INTENT(in), value     :: forget    ! Forgetting factor
     INTEGER(c_int32_t), INTENT(out) :: flag    ! Status flag
-    type(c_ptr),intent(inout)::info_ptr
+    class(*),intent(inout)::info
 
     procedure(add_obs_err) :: U_add_obs_err
     procedure(localize) :: U_localize
@@ -266,11 +266,11 @@ contains
     DEALLOCATE(XminMean_p)
 
     ! Apply localization
-    call U_localize(step, ind_p, dim_p, dim_obs, HP_p, HPH,info_ptr)
+    call U_localize(step, ind_p, dim_p, dim_obs, HP_p, HPH,info)
 
     ! *** Add observation error covariance ***
     ! ***       HPH^T = (HPH + R)          ***
-    call U_add_obs_err(step, ind_p, dim_obs, HPH,info_ptr)
+    call U_add_obs_err(step, ind_p, dim_obs, HPH,info)
 
     whichupdate: IF (rank_ana > 0) THEN
        ! **************************************************
