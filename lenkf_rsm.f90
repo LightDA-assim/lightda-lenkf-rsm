@@ -86,14 +86,14 @@ contains
          USE iso_c_binding
          INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_obs
          REAL(c_double), INTENT(inout) :: HPH(dim_obs,dim_obs)
-         class(*),intent(in)::info
+         class(*),intent(inout)::info
        END SUBROUTINE add_obs_err
        SUBROUTINE localize(step,ind_p,dim_p,dim_obs,HP_p,HPH,info)
          ! Apply localization to HP and HPH^T
          USE iso_c_binding
          INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_p, dim_obs
          REAL(c_double), INTENT(inout) :: HP_p(dim_obs,dim_p), HPH(dim_obs,dim_obs)
-         class(*),intent(in)::info
+         class(*),intent(inout)::info
        END SUBROUTINE localize
 
     END INTERFACE
