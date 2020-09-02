@@ -1,5 +1,7 @@
 module lenkf_rsm
 
+  USE mod_base_assimilation_manager, ONLY: base_assimilation_manager
+
   implicit none
 
 contains
@@ -51,8 +53,8 @@ contains
   ! !INTERFACE:
   SUBROUTINE lenkf_analysis_rsm( &
     step, ind_p, dim_p, dim_obs_p, dim_obs, dim_ens, rank_ana, state_p, &
-    ens_p, predictions, innovations, U_add_obs_err, U_localize, forget, &
-    flag, info)
+    ens_p, predictions, innovations, forget, &
+    flag, mgr)
 
     ! !DESCRIPTION:
     ! Analysis step of ensemble Kalman filter with
@@ -78,27 +80,6 @@ contains
     ! (Defines BLAS/LAPACK routines and MPI_REALTYPE)
 
     USE iso_c_binding
-
-    IMPLICIT NONE
-
-    abstract INTERFACE
-      SUBROUTINE add_obs_err(step, ind_p, dim_obs, HPH, info)
-        ! Add observation error covariance matrix
-        USE iso_c_binding
-        INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_obs
-        REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
-        class(*), intent(inout)::info
-      END SUBROUTINE add_obs_err
-      SUBROUTINE localize(step, ind_p, dim_p, dim_obs, HP_p, HPH, info)
-        ! Apply localization to HP and HPH^T
-        USE iso_c_binding
-        INTEGER(c_int32_t), INTENT(in), value :: step, ind_p, dim_p, dim_obs
-        REAL(c_double), INTENT(inout) :: HP_p(dim_obs, dim_p)
-        REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
-        class(*), intent(inout)::info
-      END SUBROUTINE localize
-
-    END INTERFACE
 
     INTERFACE
       SUBROUTINE compute_residual(n, dim_ens, a, a_resid) bind(c)
@@ -134,14 +115,11 @@ contains
     INTEGER(c_int32_t), INTENT(in), value :: rank_ana  ! Rank to be considered for inversion of HPH
     REAL(c_double), INTENT(inout)  :: state_p(dim_p)        ! PE-local ensemble mean state
     REAL(c_double), INTENT(inout)  :: ens_p(dim_p, dim_ens) ! PE-local state ensemble
-    REAL(c_double), INTENT(inout)  :: predictions(dim_obs, dim_ens) ! PE-local state ensemble
+    REAL(c_double), INTENT(in)  :: predictions(dim_obs, dim_ens) ! PE-local state ensemble
     REAL(c_double), INTENT(in)     :: innovations(dim_obs, dim_ens) ! Global array of innovations
     REAL(c_double), INTENT(in), value     :: forget    ! Forgetting factor
     INTEGER(c_int32_t), INTENT(out) :: flag    ! Status flag
-    class(*), intent(inout)::info
-
-    procedure(add_obs_err) :: U_add_obs_err
-    procedure(localize) :: U_localize
+    class(base_assimilation_manager), intent(in)::mgr
 
     ! ! External subroutines
     ! ! (PDAF-internal names, real names are defined in the call to PDAF)
@@ -266,11 +244,11 @@ contains
     DEALLOCATE (XminMean_p)
 
     ! Apply localization
-    call U_localize(step, ind_p, dim_p, dim_obs, HP_p, HPH, info)
+    call mgr%localize(step, ind_p, dim_p, dim_obs, HP_p, HPH)
 
     ! *** Add observation error covariance ***
     ! ***       HPH^T = (HPH + R)          ***
-    call U_add_obs_err(step, ind_p, dim_obs, HPH, info)
+    call mgr%add_obs_err(step, ind_p, dim_obs, HPH)
 
     whichupdate: IF (rank_ana > 0) THEN
       ! **************************************************
