@@ -52,7 +52,7 @@ contains
   !
   ! !INTERFACE:
   SUBROUTINE lenkf_analysis_rsm( &
-    step, ind_p, dim_p, dim_obs_p, dim_obs, dim_ens, rank_ana, state_p, &
+    ind_p, dim_p, dim_obs_p, dim_obs, dim_ens, rank_ana, state_p, &
     ens_p, predictions, innovations, forget, &
     flag, mgr)
 
@@ -106,7 +106,6 @@ contains
     end INTERFACE
 
     ! !ARGUMENTS:
-    INTEGER(c_int32_t), INTENT(in), value :: step      ! Iteration number
     INTEGER(c_int32_t), INTENT(in), value :: ind_p      ! Integer index of PE
     INTEGER(c_int32_t), INTENT(in), value  :: dim_p     ! PE-local dimension of model state
     INTEGER(c_int32_t), INTENT(in), value :: dim_obs_p  ! PE-local dimension of observation vector
@@ -244,11 +243,11 @@ contains
     DEALLOCATE (XminMean_p)
 
     ! Apply localization
-    call mgr%localize(step, ind_p, dim_p, dim_obs, HP_p, HPH)
+    call mgr%localize(ind_p, dim_p, dim_obs, HP_p, HPH)
 
     ! *** Add observation error covariance ***
     ! ***       HPH^T = (HPH + R)          ***
-    call mgr%add_obs_err(step, ind_p, dim_obs, HPH)
+    call mgr%add_obs_err(ind_p, dim_obs, HPH)
 
     whichupdate: IF (rank_ana > 0) THEN
       ! **************************************************
