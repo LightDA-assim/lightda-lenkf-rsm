@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(lenkf-rsm)
+project(lightda-lenkf-rsm)
+
+enable_language(Fortran)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules/")
 
-include(lenkf_functions)
+set(Fortran_MODULE_DIRECTORY include/fortran_modules/${CMAKE_Fortran_COMPILER_ID}/${CMAKE_Fortran_COMPILER_VERSION})
+set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${Fortran_MODULE_DIRECTORY})
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER 9)
@@ -18,57 +21,26 @@ else()
   add_definitions(-DOVERRIDABLE_FINALIZERS)
 endif()
 
+find_package(lightda REQUIRED)
 find_package(system_mpi REQUIRED)
 find_package(fortran_exceptions REQUIRED)
 
 find_package(LAPACK REQUIRED)
 
-set(UTIL_SOURCES util.F90 tree.f90 list.f90 hdf5_exceptions.F90 darray.F90)
-add_library(util SHARED ${UTIL_SOURCES})
-target_include_directories(util PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(util PUBLIC fortran_exceptions)
-target_link_libraries(util PUBLIC system_mpi)
-configure_hdf5_target(util)
-configure_mpi_target(util)
+get_target_property(lightda_INTERFACE_INCLUDE_DIRECTORIES lightda INTERFACE_INCLUDE_DIRECTORIES)
 
-set(RANDOM_SOURCES random.f90 random_integer.f90)
-add_library(random SHARED ${RANDOM_SOURCES})
+message("lightda_INTERFACE_INCLUDE_DIRECTORIES=${lightda_INTERFACE_INCLUDE_DIRECTORIES}")
 
-set(ASSIM_SOURCES lenkf_rsm.f90 lenkf_rsm_c.f90 dummy_assimilator.f90 base_assimilation_manager.F90 assimilation_filter.F90 lenkf_rsm_filter.F90)
-add_library(assim SHARED ${ASSIM_SOURCES})
-target_link_libraries(assim PRIVATE random util)
-target_link_libraries(assim PRIVATE ${LAPACK_LIBRARIES})
-target_include_directories(assim PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+get_target_property(lightda_INCLUDE_DIRECTORIES lightda INCLUDE_DIRECTORIES)
 
-set(ASSIM_PARALLEL_SOURCES assimilation_batch_manager.F90 assimilation_model_interface.F90 observations.F90 localization.f90 observation_manager.F90 forward_operator.F90 assimilation_manager.F90)
-add_library(assim_parallel SHARED ${ASSIM_PARALLEL_SOURCES})
-target_link_libraries(assim_parallel PUBLIC random assim system_mpi util)
-configure_mpi_target(assim_parallel)
-target_include_directories(assim_parallel PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+message("lightda_INCLUDE_DIRECTORIES=${lightda_INCLUDE_DIRECTORIES}")
 
-set(ADVECT1D_ASSIMILATE_INTERFACES_SOURCES advect1d_observations.F90 advect1d_assimilate_interfaces.F90 advect1d_forward_operator.F90 advect1d_localizer.F90)
-add_library(advect1d_assimilate_interfaces ${ADVECT1D_ASSIMILATE_INTERFACES_SOURCES})
-target_link_libraries(advect1d_assimilate_interfaces PRIVATE assim assim_parallel system_mpi)
-configure_hdf5_target(advect1d_assimilate_interfaces)
-target_include_directories(advect1d_assimilate_interfaces PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-
-set(ADVECT1D_ASSIMILATE_SOURCES advect1d_assimilate.f90)
-add_executable(advect1d_assimilate ${ADVECT1D_ASSIMILATE_SOURCES})
-target_link_libraries(advect1d_assimilate PRIVATE assim assim_parallel system_mpi advect1d_assimilate_interfaces)
-configure_mpi_target(advect1d_assimilate)
-set_source_files_properties(advect1d_assimilate_interfaces.F90 PROPERTIES COMPILE_FLAGS -cpp)
-
-set(ADVECT1D_SOURCES advect1d.f90)
-add_library(advect1d SHARED ${ADVECT1D_SOURCES})
-
-find_package(F2PY REQUIRED)
-
-configure_file(animate.py animate.py COPYONLY)
-configure_file(animate_mpi.py animate_mpi.py COPYONLY)
-configure_file(advect1d.py advect1d.py COPYONLY)
-configure_file(enkf.py enkf.py COPYONLY)
-configure_file(libsuffix.py libsuffix.py COPYONLY)
-configure_file(lenkf_rsm_py.py lenkf_rsm_py.py COPYONLY)
+set(LENKF_RSM_SOURCES lenkf_rsm.f90 lenkf_rsm_c.f90 lenkf_rsm_filter.F90)
+add_library(lightda-lenkf-rsm SHARED ${LENKF_RSM_SOURCES})
+target_link_libraries(lightda-lenkf-rsm PUBLIC lightda)
+target_link_libraries(lightda-lenkf-rsm PRIVATE ${LAPACK_LIBRARIES})
+target_include_directories(lightda-lenkf-rsm INTERFACE
+  $<INSTALL_INTERFACE:${Fortran_MODULE_DIRECTORY}>)
 
 # -------------------
 # Build documentation
@@ -83,11 +55,15 @@ if ( NOT SKIP_DOC_GEN )
 
     set(DOC_DIR "${PROJECT_BINARY_DIR}/doc")
     set(PROJ_DIR "${PROJECT_SOURCE_DIR}")
-    set(FORD_PROJECT_FILE "${CMAKE_CURRENT_BINARY_DIR}/lenkf-rsm.md")
+    set(FORD_PROJECT_FILE "${CMAKE_CURRENT_BINARY_DIR}/lightda-lenkf-rsm.md")
     set(MACRO_FLAG "")
-    string(REPLACE ";" "\ninclude:" FORD_PROJECT_INCLUDES "${MPI_Fortran_INCLUDE_DIRS};${PROJ_DIR}")
+    string(REPLACE ";" "\ninclude:" FORD_PROJECT_INCLUDES "${PROJ_DIR}/src")
+    set(FORD_PROJECT_EXCLUDE_DIRS "${MPI_Fortran_INCLUDE_DIRS};${PROJECT_BINARY_DIR};${PROJ_DIR}/build;${PROJ_DIR}/tests")
+    string(REPLACE ";" "\nexclude_dir:" FORD_PROJECT_EXCLUDE_DIRS "${FORD_PROJECT_EXCLUDE_DIRS}")
+    set(FORD_PROJECT_EXCLUDE_FILES "")
+    string(REPLACE ";" "\nexclude:" FORD_PROJECT_EXCLUDE_FILES "${FORD_PROJECT_EXCLUDE_FILES}")
 
-    configure_file(lenkf-rsm.md.in lenkf-rsm.md)
+    configure_file(lightda-lenkf-rsm.md.in lightda-lenkf-rsm.md)
 
     # Pick the preprocessor to use based on the Fortran compiler
     if ( "${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel" )
@@ -122,7 +98,7 @@ if ( NOT SKIP_DOC_GEN )
     endif ()
     message ( STATUS "Done dynamically computing FORD outputs." )
 
-    foreach ( DOC_SRC_FILE ${PROJECT_BINARY_DIR}/lenkf-rsm.md ${SYSTEM_MPI_SOURCES} ${UTIL_SOURCES} ${ASSIM_SOURCES} ${ASSIM_PARALLEL_SOURCES} ${ADVECT1D_ASSIMILATE_INTERFACES_SOURCES} ${ADVECT1D_ASSIMILATE_SOURCES} ${ADVECT1D_SOURCES} ${PAGES_FILES} )
+    foreach ( DOC_SRC_FILE ${PROJECT_BINARY_DIR}/lightda-lenkf-rsm.md ${SYSTEM_MPI_SOURCES} ${UTIL_SOURCES} ${ASSIM_SOURCES} ${ASSIM_PARALLEL_SOURCES} ${ADVECT1D_ASSIMILATE_INTERFACES_SOURCES} ${ADVECT1D_ASSIMILATE_SOURCES} ${ADVECT1D_SOURCES} ${PAGES_FILES} )
       list ( APPEND FORD_DEPENDS "${DOC_SRC_FILE}" )
     endforeach ()
 
