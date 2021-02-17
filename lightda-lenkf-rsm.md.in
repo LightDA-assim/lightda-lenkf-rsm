@@ -12,10 +12,11 @@ extra_mods: exceptions:file://${fortran_exceptions_DOCDIR}/index.html
 extra_mods: system_mpi:file://${system_mpi_DOCDIR}/index.html
 ---
 
+This is a local ensemble Kalman filter implementation, based heavily on the implementation from [PDAF](http://pdaf.awi.de/trac/wiki), but adapted for use with LightDA.
 
 ## Compiling
 
-The simplest way to build LightDA is using the superbuild, which downloads and compiles all of LightDA's dependencies before compiling LightDA itself. It is invoked using CMake as follows:
+The simplest way to build the lenkf-rsm component is using the superbuild, which downloads and compiles LightDA and its dependencies compiling the lenkf-rsm component. It is invoked using CMake as follows:
 
 ```bash
 mkdir build
