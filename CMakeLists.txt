@@ -25,14 +25,6 @@ find_package(lightda REQUIRED)
 
 find_package(LAPACK REQUIRED)
 
-get_target_property(lightda_INTERFACE_INCLUDE_DIRECTORIES lightda INTERFACE_INCLUDE_DIRECTORIES)
-
-message("lightda_INTERFACE_INCLUDE_DIRECTORIES=${lightda_INTERFACE_INCLUDE_DIRECTORIES}")
-
-get_target_property(lightda_INCLUDE_DIRECTORIES lightda INCLUDE_DIRECTORIES)
-
-message("lightda_INCLUDE_DIRECTORIES=${lightda_INCLUDE_DIRECTORIES}")
-
 add_subdirectory(src)
 
 # -------------------
