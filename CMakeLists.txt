@@ -22,8 +22,6 @@ else()
 endif()
 
 find_package(lightda REQUIRED)
-find_package(system_mpi REQUIRED)
-find_package(fortran_exceptions REQUIRED)
 
 find_package(LAPACK REQUIRED)
 
