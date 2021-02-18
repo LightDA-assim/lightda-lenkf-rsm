@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/lightda-lenkf-rsmTargets.cmake")
+
+include(CMakeFindDependencyMacro)
+
+if(NOT lightda_FOUND AND NOT TARGET lightda)
+  find_dependency(lightda REQUIRED)
+endif()
+
+check_required_components(lightda-lenkf-rsm)
+
+set(lightda-lenkf-rsm_DOCDIR @CMAKE_INSTALL_PREFIX@/share/doc/lightda-lenkf-rsm)

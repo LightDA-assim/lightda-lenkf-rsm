@@ -27,6 +27,33 @@ find_package(LAPACK REQUIRED)
 
 add_subdirectory(src)
 
+include(CMakePackageConfigHelpers)
+
+# Add all targets to the build-tree export set
+export(TARGETS lightda-lenkf-rsm
+  FILE "${PROJECT_BINARY_DIR}/lightda-lenkf-rsmTargets.cmake")
+
+# Export the package for use from the build-tree
+# (this registers the build-tree with a global CMake-registry)
+export(PACKAGE lightda-lenkf-rsm)
+
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/lightda-lenkf-rsmConfig.cmake"
+  INSTALL_DESTINATION lib/cmake/lightda-lenkf-rsm
+  )
+
+install(FILES
+          "${CMAKE_CURRENT_BINARY_DIR}/lightda-lenkf-rsmConfig.cmake"
+        DESTINATION lib/cmake/lightda-lenkf-rsm
+)
+
+install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION ${Fortran_MODULE_DIRECTORY}/..)
+
+install(EXPORT lightda-lenkf-rsm
+  FILE lightda-lenkf-rsmTargets.cmake
+  DESTINATION lib/cmake/lightda-lenkf-rsm
+)
+
 # -------------------
 # Build documentation
 # -------------------
