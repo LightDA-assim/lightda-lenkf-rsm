@@ -1,7 +1,7 @@
 module lenkf_rsm_c
   use lenkf_rsm, ONLY: lenkf_rsm_fortran => lenkf_analysis_rsm
   use mod_base_assimilation_manager, ONLY: base_assimilation_manager
-  use exceptions, ONLY: error_status
+  use exceptions, ONLY: error_container
 
   use iso_c_binding
 
@@ -36,7 +36,7 @@ contains
     class(c_function_container), target :: this
     INTEGER(c_int32_t), INTENT(in), value :: ibatch, dim_p, dim_obs
     REAL(c_double), INTENT(inout) :: HP_p(dim_obs, dim_p), HPH(dim_obs, dim_obs)
-    class(error_status), intent(out), allocatable, optional :: status
+    class(error_container), intent(out), optional :: status
     procedure(localize), pointer::U_localize
 
     call c_f_procpointer(this%localize_fptr, U_localize)
@@ -59,7 +59,7 @@ contains
     class(c_function_container), target::this
     INTEGER(c_int32_t), INTENT(in), value :: ibatch, dim_obs
     REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
-    class(error_status), intent(out), allocatable, optional :: status
+    class(error_container), intent(out), optional :: status
     procedure(add_obs_err), pointer::U_add_obs_err
 
     call c_f_procpointer(this%add_obs_err_fptr, U_add_obs_err)

@@ -1,6 +1,6 @@
 module mod_lenkf_rsm_filter
 
-  use exceptions, ONLY: error_status, throw, new_exception
+  use exceptions, ONLY: error_container, throw, new_exception
   use mod_assimilation_filter, ONLY: assimilation_filter
   use lenkf_rsm, ONLY: lenkf_analysis_rsm
   use mod_base_assimilation_manager, ONLY: base_assimilation_manager
@@ -33,7 +33,7 @@ contains
         !! Predictions for the subset
     real(kind=8), allocatable::innovations(:, :)
         !! Innovations for the subset
-    class(error_status), intent(out), allocatable, optional::status
+    class(error_container), intent(out), optional::status
         !! Error status
 
     integer::imember, iobs, obs_count, n_ensemble
@@ -90,7 +90,7 @@ contains
     real(kind=8), allocatable::innovations(:, :)
 
     class(base_assimilation_manager)::mgr
-    class(error_status), intent(out), allocatable, optional :: status
+    class(error_container), intent(out), optional :: status
 
     real(kind=8)::state_p(dim_p)
     integer::flag
