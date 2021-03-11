@@ -14,6 +14,11 @@ set(
   "git@gitlab.hpc.mil:john.haiducek.ctr/fortran_exceptions.git" CACHE STRING
   "URL of fortran_exceptions git repository")
 
+set(
+  lightda_GIT_URL
+  "git@gitlab.hpc.mil:john.haiducek.ctr/lightda.git" CACHE STRING
+  "URL of fortran_exceptions git repository")
+
 ExternalProject_Add(
   system_mpi
   GIT_REPOSITORY ${system_mpi_GIT_URL}
@@ -30,7 +35,7 @@ ExternalProject_Add(
 
 ExternalProject_Add(
   lightda
-  GIT_REPOSITORY /Users/jhaiduce/Development/repositories/lightda.git
+  GIT_REPOSITORY ${lightda_GIT_URL}
   GIT_TAG main
   CMAKE_CACHE_ARGS
     -Dsystem_mpi_DIR:STRING=${CMAKE_CURRENT_BINARY_DIR}/system_mpi/lib/cmake/system_mpi
