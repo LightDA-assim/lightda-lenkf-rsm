@@ -4,4 +4,5 @@ target_link_libraries(lightda-lenkf-rsm PUBLIC lightda)
 target_link_libraries(lightda-lenkf-rsm PRIVATE ${LAPACK_LIBRARIES})
 target_include_directories(lightda-lenkf-rsm INTERFACE
   $<INSTALL_INTERFACE:${Fortran_MODULE_DIRECTORY}>)
-install(TARGETS lightda-lenkf-rsm EXPORT lightda-lenkf-rsm)
+install(TARGETS lightda-lenkf-rsm EXPORT lightda-lenkf-rsm
+  LIBRARY DESTINATION lib ${CMAKE_INSTALL_LIBDIR})

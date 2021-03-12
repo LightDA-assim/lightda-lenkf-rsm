@@ -25,6 +25,14 @@ find_package(lightda REQUIRED)
 
 find_package(LAPACK REQUIRED)
 
+function(list_transform_prepend var prefix)
+    set(temp "")
+    foreach(f ${${var}})
+        list(APPEND temp "${prefix}${f}")
+    endforeach()
+    set(${var} "${temp}" PARENT_SCOPE)
+endfunction()
+
 add_subdirectory(src)
 
 include(CMakePackageConfigHelpers)
@@ -157,7 +165,7 @@ else()
     ${ADVECT1D_ASSIMILATE_INTERFACES_SOURCES};${ADVECT1D_ASSIMILATE_SOURCES};
     ${ADVECT1D_SOURCES})
 
-  list(TRANSFORM ALL_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+  list_transform_prepend(ALL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/)
 
   add_custom_target(
     fprettify
