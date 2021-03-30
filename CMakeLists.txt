@@ -30,7 +30,7 @@ else()
   add_definitions(-DOVERRIDABLE_FINALIZERS)
 endif()
 
-find_package(lightda REQUIRED)
+find_package(lightda REQUIRED NO_POLICY_SCOPE)
 
 find_package(LAPACK REQUIRED)
 
