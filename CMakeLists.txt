@@ -76,7 +76,17 @@ set ( SKIP_DOC_GEN FALSE CACHE BOOL
 if ( NOT SKIP_DOC_GEN )
   find_program(FORD ford)
 
-  if(FORD)
+  find_package(PythonInterp)
+
+  if(NOT PYTHON_VERSION_STRING VERSION_LESS 3.5)
+    set(MARKDOWN_SUPPORTED_PYTHON true)
+  endif()
+
+  if(NOT MARKDOWN_SUPPORTED_PYTHON)
+    message(WARNING "Python version ${PYTHON_VERSION_STRING} is not supported by Python-Markdown, not attempting to build documentation.")
+  endif()
+
+  if(FORD AND MARKDOWN_SUPPORTED_PYTHON)
 
     set(DOC_DIR "${PROJECT_BINARY_DIR}/doc")
     set(PROJ_DIR "${PROJECT_SOURCE_DIR}")
