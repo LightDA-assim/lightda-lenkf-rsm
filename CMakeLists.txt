@@ -92,7 +92,8 @@ if ( NOT SKIP_DOC_GEN )
 
   if(FORD AND MARKDOWN_SUPPORTED_PYTHON)
 
-    set(DOC_DIR "${PROJECT_BINARY_DIR}/doc")
+    set(DOC_ROOT "${PROJECT_BINARY_DIR}/doc")
+    set(DOC_DIR "${DOC_ROOT}/lightda-lenkf-rsm")
     set(PROJ_DIR "${PROJECT_SOURCE_DIR}")
     set(FORD_PROJECT_FILE "${CMAKE_CURRENT_BINARY_DIR}/lightda-lenkf-rsm.md")
     set(MACRO_FLAG "")
@@ -155,12 +156,7 @@ if ( NOT SKIP_DOC_GEN )
     set ( INSTALL_API_DOCUMENTATION TRUE
       CACHE BOOL "Install FORD generated documentation?" )
     if ( INSTALL_API_DOCUMENTATION )
-      if ( USE_GNU_INSTALL_CONVENTION )
-	install ( DIRECTORY "${DOC_DIR}/" DESTINATION "${CMAKE_INSTALL_DOCDIR}" )
-      else ()
-	install ( DIRECTORY "${DOC_DIR}/" DESTINATION "${CMAKE_INSTALL_PREFIX}/${PACKAGE_VERSION}/doc" )
-      endif ()
-
+      install ( DIRECTORY "${DOC_ROOT}/" DESTINATION share/doc )
     else ()
 
       # FORD Not found
