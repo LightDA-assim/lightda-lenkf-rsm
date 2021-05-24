@@ -33,7 +33,7 @@ contains
         !! Predictions for the subset
     real(kind=8), allocatable::innovations(:, :)
         !! Innovations for the subset
-    class(error_container), intent(out), optional::status
+    type(error_container), intent(out), optional::status
         !! Error status
 
     integer::imember, iobs, obs_count, n_ensemble
@@ -90,7 +90,7 @@ contains
     real(kind=8), allocatable::innovations(:, :)
 
     class(base_assimilation_manager)::mgr
-    class(error_container), intent(out), optional :: status
+    type(error_container), intent(out), optional :: status
 
     real(kind=8)::state_p(dim_p)
     integer::flag

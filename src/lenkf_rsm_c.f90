@@ -36,7 +36,7 @@ contains
     class(c_function_container), target :: this
     INTEGER(c_int32_t), INTENT(in), value :: ibatch, dim_p, dim_obs
     REAL(c_double), INTENT(inout) :: HP_p(dim_obs, dim_p), HPH(dim_obs, dim_obs)
-    class(error_container), intent(out), optional :: status
+    type(error_container), intent(out), optional :: status
     procedure(localize), pointer::U_localize
 
     call c_f_procpointer(this%localize_fptr, U_localize)
@@ -59,7 +59,7 @@ contains
     class(c_function_container), target::this
     INTEGER(c_int32_t), INTENT(in), value :: ibatch, dim_obs
     REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
-    class(error_container), intent(out), optional :: status
+    type(error_container), intent(out), optional :: status
     procedure(add_obs_err), pointer::U_add_obs_err
 
     call c_f_procpointer(this%add_obs_err_fptr, U_add_obs_err)
