@@ -22,7 +22,7 @@ contains
                               ibatch, dim_p, dim_obs, HP_p, HPH, status)
 
     abstract INTERFACE
-      SUBROUTINE localize( &
+      SUBROUTINE localize_c( &
         ind_p, dim_p, dim_obs, HP_p, HPH, info_ptr) BIND(C)
         ! Apply localization to HP and HPH^T
         USE iso_c_binding
@@ -30,14 +30,14 @@ contains
         REAL(c_double), INTENT(inout) :: HP_p(dim_obs, dim_p)
         REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
         type(c_ptr), value::info_ptr
-      END SUBROUTINE localize
+      END SUBROUTINE localize_c
     end INTERFACE
 
     class(c_function_container), target :: this
     INTEGER(c_int32_t), INTENT(in), value :: ibatch, dim_p, dim_obs
     REAL(c_double), INTENT(inout) :: HP_p(dim_obs, dim_p), HPH(dim_obs, dim_obs)
     type(error_container), intent(out), optional :: status
-    procedure(localize), pointer::U_localize
+    procedure(localize_c), pointer::U_localize
 
     call c_f_procpointer(this%localize_fptr, U_localize)
     call U_localize(ibatch, dim_p, dim_obs, HP_p, HPH, this%info_ptr)
@@ -47,20 +47,20 @@ contains
   subroutine add_obs_err_wrapper(this, ibatch, dim_obs, HPH, status)
 
     abstract INTERFACE
-      SUBROUTINE add_obs_err(ind_p, dim_obs, HPH, info_ptr) BIND(C)
+      SUBROUTINE add_obs_err_c(ind_p, dim_obs, HPH, info_ptr) BIND(C)
         ! Add observation error covariance matrix
         USE iso_c_binding
         INTEGER(c_int32_t), INTENT(in), value :: ind_p, dim_obs
         REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
         type(c_ptr), value::info_ptr
-      END SUBROUTINE add_obs_err
+      END SUBROUTINE add_obs_err_c
     end INTERFACE
 
     class(c_function_container), target::this
     INTEGER(c_int32_t), INTENT(in), value :: ibatch, dim_obs
     REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
     type(error_container), intent(out), optional :: status
-    procedure(add_obs_err), pointer::U_add_obs_err
+    procedure(add_obs_err_c), pointer::U_add_obs_err
 
     call c_f_procpointer(this%add_obs_err_fptr, U_add_obs_err)
     call U_add_obs_err(ibatch, dim_obs, HPH, this%info_ptr)
