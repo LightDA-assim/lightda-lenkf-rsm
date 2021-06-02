@@ -71,22 +71,6 @@ contains
     dim_ens, rank_ana, state_p, ens_p, predictions, innovations, &
     U_add_obs_err, U_localize, forget, flag, info_ptr) bind(c)
 
-    abstract INTERFACE
-      SUBROUTINE add_obs_err(step, ind_p, dim_obs, HPH) BIND(C)
-        ! Add observation error covariance matrix
-        USE iso_c_binding
-        INTEGER(c_int32_t), INTENT(in), value :: ind_p, dim_obs
-        REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
-      END SUBROUTINE add_obs_err
-      SUBROUTINE localize(step, ind_p, dim_p, dim_obs, HP_p, HPH) BIND(C)
-        ! Apply localization to HP and HPH^T
-        USE iso_c_binding
-        INTEGER(c_int32_t), INTENT(in), value :: ind_p, dim_p, dim_obs
-        REAL(c_double), INTENT(inout) :: HP_p(dim_obs, dim_p)
-        REAL(c_double), INTENT(inout) :: HPH(dim_obs, dim_obs)
-      END SUBROUTINE localize
-    end INTERFACE
-
     ! !ARGUMENTS:
     INTEGER(c_int32_t), INTENT(in), value :: ind_p      ! Integer index of PE
     INTEGER(c_int32_t), INTENT(in), value  :: dim_p     ! PE-local dimension of model state
