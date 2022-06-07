@@ -65,8 +65,8 @@ contains
 
     do imember = 1, n_ensemble
       do iobs = 1, obs_count
-        innovations(iobs, imember) = observations(iobs) - &
-                                     predictions(iobs, imember) + &
+        innovations(iobs, imember) = predictions(iobs, imember) - &
+                                     observations(iobs) + &
                                      random_normal()*obs_errors(iobs)
       end do
     end do
