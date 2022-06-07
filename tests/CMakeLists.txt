@@ -11,7 +11,12 @@ if( (FPRETTIFY_EXECUTABLE) AND (ALL_SOURCES) )
     -P ${CMAKE_CURRENT_SOURCE_DIR}/test_and_check_regex.cmake)
 endif()
 
-add_custom_target(all_tests ALL DEPENDS)
+add_executable(single_obs_test single_obs_test.F90)
+target_link_libraries(single_obs_test PUBLIC lightda-lenkf-rsm)
+
+add_test(single_obs_test ./single_obs_test)
+
+add_custom_target(all_tests ALL DEPENDS single_obs_test)
 
 add_custom_command(
      TARGET all_tests
