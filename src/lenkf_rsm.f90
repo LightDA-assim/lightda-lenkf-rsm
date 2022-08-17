@@ -39,7 +39,7 @@ contains
     REAL(c_double)::row_mean
 
     do irow = 1, n
-      row_mean = sum(a(irow, :))/real(dim_ens)
+      row_mean = sum(a(irow, :))/real(dim_ens, c_double)
 
       do imember = 1, dim_ens
         a_resid(irow, imember) = a(irow, imember) - row_mean
