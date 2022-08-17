@@ -231,7 +231,7 @@ contains
     ALLOCATE (HPH(dim_obs, dim_obs))
 
     CALL dgemm('n', 't', dim_obs, dim_p, dim_ens, &
-               invdim_ensm1, resid_pred, dim_obs, resid_ens, dim_p, &
+               invdim_ensm1, resid_pred, dim_obs, XminMean_p, dim_p, &
                0.0d+0, HP_p, dim_obs)
 
     CALL dgemm('n', 't', dim_obs, dim_obs, dim_ens, &
