@@ -56,7 +56,7 @@ contains
 
     integer, parameter::ibatch = 1
     integer, parameter::n_obs = 1
-    integer, parameter:: n_ens = 15
+    integer, parameter:: n_ens = 60
     integer, parameter::batch_size = 1
     integer, parameter::istep = 1
     integer, parameter::report_interval=1
@@ -70,12 +70,12 @@ contains
 
     integer::imember
 
-    observations = 1
-    obs_errors = 0.1
+    observations = 0
+    obs_errors = 1
     
     do imember = 1, n_ens
 
-       predictions(1,imember) = random_normal() + 2
+       predictions(1,imember) = random_normal() + 100
 
     end do
 
