@@ -9,7 +9,7 @@ module mod_lenkf_rsm_filter
   implicit none
 
   type, extends(assimilation_filter)::lenkf_rsm_filter
-    real(kind=8)::forget = 0.6
+    real(kind=8)::forget = 1.0
   contains
     procedure::assimilate
   end type lenkf_rsm_filter
