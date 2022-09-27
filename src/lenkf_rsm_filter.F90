@@ -36,7 +36,11 @@ contains
     type(error_container), intent(out), optional::status
         !! Error status
 
+    real(kind=8), allocatable::obs_perturbations(:, :)
+        !! Obs perturbations
+
     integer::imember, iobs, obs_count, n_ensemble
+    real(kind=8) mean_perturbation
 
     obs_count = size(observations)
     n_ensemble = size(predictions, 2)
@@ -62,12 +66,27 @@ contains
     end if
 
     allocate (innovations(obs_count, n_ensemble))
+    allocate (obs_perturbations(obs_count, n_ensemble))
+
+    ! Compute obs perturbations
+    do imember = 1, n_ensemble
+      do iobs = 1, obs_count
+        obs_perturbations = random_normal()*obs_errors(iobs)
+      end do
+    end do
+
+    ! Subtract off the mean from obs perturbations (so the new mean perturbation
+    ! is zero)
+    do iobs = 1, obs_count
+      mean_perturbation = sum(obs_perturbations(iobs, :))/n_ensemble
+      obs_perturbations(iobs, :) = obs_perturbations(iobs, :) - mean_perturbation
+    end do
 
     do imember = 1, n_ensemble
       do iobs = 1, obs_count
         innovations(iobs, imember) = observations(iobs) &
                                      - predictions(iobs, imember) &
-                                     + random_normal()*obs_errors(iobs)
+                                     + obs_perturbations(iobs, imember)
       end do
     end do
 
