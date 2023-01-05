@@ -8,6 +8,20 @@ enable_language(Fortran)
 # which prevents gfortran from finding Fortran module files
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED ON)
 
+# Stop newer linkers on Linux using RUNPATH instead of RPATH, which causes
+# problems loading indirect library dependencies.
+# Note it may also be necessary to remove -Wl,--enable-new-dtags from linker
+# flags elsewhere (for example this --enable-new-dtags may be set by recent
+# versions of OpenMPI and must be removed afterward)
+
+if($CMAKE_VERSION VERSION_GREATER 3.13.0)
+  add_link_options($<$<CXX_COMPILER_ID:GNU>:-Wl,--disable-new-dtags>)
+else()
+  if(UNIX AND NOT APPLE)
+    set (CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags)
+  endif()
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules/")
 
 if(DEFINED CMAKE_Fortran_COMPILER_VERSION)
