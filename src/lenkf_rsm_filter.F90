@@ -41,7 +41,7 @@ contains
         !! Obs perturbations
 
     integer::imember, iobs, obs_count, n_ensemble
-    real(kind=8) mean_perturbation
+    real(kind=8) mean_perturbation, perturbation_std
 
     obs_count = size(observations)
     n_ensemble = size(predictions, 2)
@@ -81,6 +81,14 @@ contains
     do iobs = 1, obs_count
       mean_perturbation = sum(obs_perturbations(iobs, :))/n_ensemble
       obs_perturbations(iobs, :) = obs_perturbations(iobs, :) - mean_perturbation
+    end do
+
+    ! Scale the perturbations so their standard deviation equals the
+    ! observation error
+    do iobs = 1, obs_count
+      perturbation_std = sqrt(sum(obs_perturbations(iobs, :)**2)/n_ensemble)
+      obs_perturbations(iobs, :) = &
+        obs_perturbations(iobs, :)*obs_errors(iobs)/perturbation_std
     end do
 
     do imember = 1, n_ensemble
