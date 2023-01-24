@@ -64,11 +64,17 @@ contains
     real(real64)::obs_errors(n_obs)
     real(real64)::predictions(n_obs, n_ens)
     real(real64)::state(n_obs, n_ens)
+    real(real64)::prior_state(n_obs, n_ens)
+    real(real64)::posterior_state(n_obs, n_ens)
     type(lenkf_rsm_filter)::filter
     type(simple_assimilation_manager)::mgr
     real(real64)::prior_mean, posterior_mean
 
     integer::imember
+
+    real(real64)::prior_innovations(n_obs, n_ens)
+    real(real64)::prior_variance, expected_increment(n_obs, n_ens), actual_increment(n_obs, n_ens), mean_perturbation
+    real(real64)::obs_perturbations(n_obs,n_ens)
 
     observations = 1
     obs_errors = 0.1
@@ -76,6 +82,7 @@ contains
     do imember = 1, n_ens
 
        predictions(1,imember) = random_normal() + 2
+       prior_innovations(:,imember) = observations - predictions(:,imember)
 
     end do
 
@@ -84,7 +91,11 @@ contains
     ! Extremely simple test, model state is identical to predictions
     state = predictions
 
+    prior_state = state
+
     call filter%assimilate(ibatch, n_obs, n_obs, n_ens, state, predictions, observations, obs_errors, mgr)
+
+    posterior_state = state
 
     posterior_mean = sum(state)/n_ens
 
@@ -97,6 +108,23 @@ contains
           str(real(min(prior_mean, observations(1))), '(F0.2)')//" and "// &
           str(real(max(prior_mean, observations(1))), '(F0.2)')//")."
         error stop
+    end if
+
+    prior_variance = sum((predictions - prior_mean)**2)/n_ens
+    obs_perturbations = filter%innovations - prior_innovations
+
+    do imember = 1, n_ens
+       expected_increment(1,imember) = &
+         prior_variance/(prior_variance + obs_errors(1)**2)*filter%innovations(1,imember)
+    end do
+
+    actual_increment = posterior_state - prior_state
+
+    if (any(actual_increment /= expected_increment)) then
+       write (error_unit, *) "Wrong analysis increment. Expected",&
+            expected_increment,"; got ", &
+            actual_increment,"."
+       error stop
     end if
 
   end subroutine test_single_obs
