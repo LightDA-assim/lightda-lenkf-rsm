@@ -72,7 +72,7 @@ contains
     ! Compute obs perturbations
     do imember = 1, n_ensemble
       do iobs = 1, obs_count
-        obs_perturbations = random_normal()*obs_errors(iobs)
+        obs_perturbations(iobs, imember) = random_normal()*obs_errors(iobs)
       end do
     end do
 
