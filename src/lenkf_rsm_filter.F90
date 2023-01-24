@@ -10,6 +10,7 @@ module mod_lenkf_rsm_filter
 
   type, extends(assimilation_filter)::lenkf_rsm_filter
     real(kind=8)::forget = 1.0
+    real(real64), allocatable::innovations(:, :)
   contains
     procedure::assimilate
   end type lenkf_rsm_filter
@@ -115,6 +116,7 @@ contains
     integer::flag
 
     innovations = get_innovations(observations, predictions, obs_errors)
+    this%innovations = innovations
 
     call lenkf_analysis_rsm( &
       ibatch, dim_p, dim_obs, dim_obs, &
