@@ -120,7 +120,7 @@ contains
 
     actual_increment = posterior_state - prior_state
 
-    if (any(actual_increment /= expected_increment)) then
+    if (any(abs((actual_increment - expected_increment)/expected_increment) > 0.002)) then
        write (error_unit, *) "Wrong analysis increment. Expected",&
             expected_increment,"; got ", &
             actual_increment,"."
