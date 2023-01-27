@@ -123,7 +123,7 @@ contains
     if (any(abs((actual_increment - expected_increment)/expected_increment) > 1e-15)) then
        write (error_unit, *) "Wrong analysis increment. Expected",&
             expected_increment,"; got ", &
-            actual_increment,"."
+            actual_increment,"(error", actual_increment - expected_increment,")"
        error stop
     end if
 
