@@ -110,7 +110,7 @@ contains
         error stop
     end if
 
-    prior_variance = sum((predictions - prior_mean)**2)/n_ens
+    prior_variance = sum((predictions - prior_mean)**2)/(n_ens-1)
     obs_perturbations = filter%innovations - prior_innovations
 
     do imember = 1, n_ens

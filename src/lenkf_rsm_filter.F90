@@ -87,9 +87,11 @@ contains
     ! Scale the perturbations so their standard deviation equals the
     ! observation error
     do iobs = 1, obs_count
-      perturbation_std = sqrt(sum(obs_perturbations(iobs, :)**2)/n_ensemble)
+      perturbation_std = &
+        sqrt(sum(obs_perturbations(iobs, :)**2)/(n_ensemble - 1))
       obs_perturbations(iobs, :) = &
         obs_perturbations(iobs, :)*obs_errors(iobs)/perturbation_std
+
     end do
 
     do imember = 1, n_ensemble
